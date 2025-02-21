@@ -82,6 +82,6 @@ func (s *Store) SaveRecord(r Record) error {
 	return nil
 }
 
-func (s *Store) Login(f LoginForm) error {
+func (s *Store) Login(f loginForm) error {
 	return nil
 }

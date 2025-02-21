@@ -14,12 +14,12 @@ const (
 	viewRecordView
 )
 
-type LoginForm struct {
+type loginForm struct {
 	Email    string
 	Password string
 }
 
-type RegisterForm struct {
+type legisterForm struct {
 	FullName        string
 	Email           string
 	Password        string
@@ -38,6 +38,10 @@ type registerInputMsg struct {
 	confirmPasswordInput textinput.Model
 }
 
+type authTokens struct {
+	accessToken  string
+	refreshToken string
+}
 type model struct {
 	state               uint
 	store               *Store
@@ -46,13 +50,15 @@ type model struct {
 	selectedRecordIndex int
 	textinput           textinput.Model
 	textarea            textarea.Model
-	loginForm           LoginForm
+	loginForm           loginForm
 	loginInputMsg       loginInputMsg
 
-	registerForm     RegisterForm
+	registerForm     legisterForm
 	registerInputMsg registerInputMsg
 
-	formError string
+	formError  string
+
+	authTokens authTokens
 }
 
 func NewModel(store *Store) model {
@@ -67,8 +73,8 @@ func NewModel(store *Store) model {
 		records:       records,
 		textinput:     textinput.New(),
 		textarea:      textarea.New(),
-		loginForm:     LoginForm{},
-		registerForm:  RegisterForm{},
+		loginForm:     loginForm{},
+		registerForm:  legisterForm{},
 		loginInputMsg: setupLoginView(),
 	}
 }
@@ -244,13 +250,13 @@ func isHotKey(key string) bool {
 }
 
 func renderRegisterView(m *model) {
-	m.registerForm = RegisterForm{}
+	m.registerForm = legisterForm{}
 	m.registerInputMsg = setupRegisterView()
 	m.state = registerView
 }
 
 func renderLoginView(m *model) {
-	m.loginForm = LoginForm{}
+	m.loginForm = loginForm{}
 	m.loginInputMsg = setupLoginView()
 	m.state = loginView
 }
