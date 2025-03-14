@@ -17,6 +17,8 @@ db:
 
 auth:
   jwt_secret: "my_super_secret_key"
+  access_token_expiry: "15m"     # 15 minutes
+  refresh_token_expiry: "10080m" # 7 days (10080 minutes)
 
 cache:
   cache1:

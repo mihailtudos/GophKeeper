@@ -8,21 +8,25 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+
 	"github.com/mihailtudos/gophkeeper/server/internal/application/services"
 	"github.com/mihailtudos/gophkeeper/server/internal/config"
 	"github.com/mihailtudos/gophkeeper/server/internal/infrastructure"
 	"github.com/mihailtudos/gophkeeper/server/internal/infrastructure/db"
 	"github.com/mihailtudos/gophkeeper/server/internal/infrastructure/repositories"
-	h "github.com/mihailtudos/gophkeeper/server/internal/interfaces/http"
+	"github.com/mihailtudos/gophkeeper/server/internal/interfaces/http/handlers"
+	mw "github.com/mihailtudos/gophkeeper/server/internal/interfaces/http/middleware"
 )
 
 func main() {
-	cfg := config.NewConfig()
+	cfg := config.MustNewConfig()
 
 	logger := infrastructure.MustNewLogger(cfg.Logger)
 
 	logger.Info("logger initialized successfully")
 	logger.Debug("debug mode enabled")
+
+	fmt.Printf("config: %+v\n", cfg)
 
 	ctx := context.Background()
 	// TODO: add db
@@ -46,7 +50,7 @@ func main() {
 	services := services.NewServices(ctx, cfg, logger, repository)
 
 	// TODO: add handlers
-	handlers := h.NewHandler(logger, services)
+	handlers := handlers.NewHandler(logger, services)
 
 	// TODO: add router
 	router := chi.NewRouter()
@@ -60,7 +64,16 @@ func main() {
 
 	// TODO: add handlers
 	router.Route("/api", func(r chi.Router) {
-		router.Post("/signup", handlers.Register)
+		r.Post("/register", handlers.Register)
+		r.Post("/login", handlers.Login)
+
+		r.Group(func(r chi.Router) {
+			r.Use(mw.Auth(cfg.Auth.SecretKey, logger))
+			r.Route("/secrets", func(r chi.Router) {
+				r.Post("/", handlers.Store)
+				r.Post("/{id}/decrypt", handlers.DecryptSecret)
+			})
+		})
 	})
 
 	// TODO: add server
@@ -69,7 +82,7 @@ func main() {
 		Handler: router,
 	}
 
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err = srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error("failed to start server", "error", err)
 		log.Fatal("failed to start server", "error", err)
 	}
