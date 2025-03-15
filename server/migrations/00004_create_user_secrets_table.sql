@@ -7,6 +7,7 @@ CREATE TABLE user_secrets (
     s_name TEXT NOT NULL,  -- Friendly name for the secret
     encrypted_data BYTEA NOT NULL,  -- Encrypted content
     iv BYTEA NOT NULL,  -- Initialization vector (IV) for AES-GCM
+    checksum BYTEA NOT NULL UNIQUE,  -- Prevent duplicate secrets
     created_at TIMESTAMP DEFAULT now(),
     updated_at TIMESTAMP DEFAULT now()
 );

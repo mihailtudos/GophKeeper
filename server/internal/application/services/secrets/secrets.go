@@ -5,6 +5,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,6 +36,7 @@ var (
 	ErrInvalidSecretType = errors.New("invalid secret type")
 	ErrSecretNotFound    = errors.New("secret not found")
 	ErrDecryptionFailed  = errors.New("decryption failed")
+	ErrSecretExists      = errors.New("secret already exists")
 )
 
 func NewSecretsService(ctx context.Context, logger *slog.Logger, repository *repositories.Repository) *Service {
@@ -112,6 +115,12 @@ func decrypt(masterPassword string, userSalt, ciphertext, nonce []byte) ([]byte,
 	return plaintext, nil
 }
 
+// ComputeChecksum calculates a SHA-256 hash of the encrypted data
+func ComputeChecksum(data []byte) []byte {
+	hash := sha256.Sum256(data)
+	return hash[:]
+}
+
 func (s *Service) StoreSecret(ctx context.Context, userID, secretType, secretName, masterPassword string, secret json.RawMessage) error {
 	op := "services.SecretsService.Store"
 
@@ -123,14 +132,70 @@ func (s *Service) StoreSecret(ctx context.Context, userID, secretType, secretNam
 
 	var encData []byte
 	var nonce []byte
+	var sumcheck []byte
 	switch secretType {
 	case "login":
 		var loginRecord domain.LoginSecret
-		if err := json.Unmarshal(secret, &loginRecord); err != nil {
+		if err = json.Unmarshal(secret, &loginRecord); err != nil {
 			s.logger.ErrorContext(ctx, "failed to unmarshal login secret", pkg.ErrAttr(err))
 			return fmt.Errorf("%s.UnmarshalLoginSecret: %w", op, err)
 		}
-		encData, nonce, err = encrypt(masterPassword, userSalt, []byte(secret))
+
+		if loginRecord.Login == "" || loginRecord.Password == "" {
+			return fmt.Errorf("%s.LoginOrPasswordIsEmpty: %w", op, ErrInvalidSecretType)
+		}
+
+		sumcheck = ComputeChecksum(secret)
+
+		encData, nonce, err = encrypt(masterPassword, userSalt, secret)
+	case "card":
+		var card domain.CardDetails
+		if err = json.Unmarshal(secret, &card); err != nil {
+			s.logger.ErrorContext(ctx, "failed to unmarshal card secret", pkg.ErrAttr(err))
+			return fmt.Errorf("%s.UnmarshalCardSecret: %w", op, err)
+		}
+
+		if card.CardHolder == "" || card.CardNumber == "" || card.ExpirationDate == "" || card.CVV == "" {
+			return fmt.Errorf("%s.CardHolderIsEmpty: %w", op, ErrInvalidSecretType)
+		}
+
+		sumcheck = ComputeChecksum(secret)
+
+		encData, nonce, err = encrypt(masterPassword, userSalt, secret)
+	case "text":
+		var text domain.PlainText
+		if err = json.Unmarshal(secret, &text); err != nil {
+			s.logger.ErrorContext(ctx, "failed to unmarshal text secret", pkg.ErrAttr(err))
+			return fmt.Errorf("%s.UnmarshalTextSecret: %w", op, err)
+		}
+
+		if text.Value == "" {
+			return fmt.Errorf("%s.TextIsEmpty: %w", op, ErrInvalidSecretType)
+		}
+
+		sumcheck = ComputeChecksum(secret)
+
+		encData, nonce, err = encrypt(masterPassword, userSalt, secret)
+	case "binary":
+		var base64String string
+		var binaryData domain.BinaryData
+		// Decode Base64 string from JSON
+		if err = json.Unmarshal(secret, &base64String); err != nil {
+			s.logger.Error("failed to unmarshal base64 string", pkg.ErrAttr(err))
+			return fmt.Errorf("%s.UnmarshalBase64String: %w", op, err)
+		}
+
+		// Convert Base64 to raw bytes
+		binaryData.Data, err = base64.StdEncoding.DecodeString(base64String)
+		if err != nil {
+			s.logger.Error("failed to decode base64 data", pkg.ErrAttr(err))
+			return fmt.Errorf("%s.DecodeBase64: %w", op, err)
+		}
+
+		// Compute checksum for raw bytes
+		sumcheck = ComputeChecksum(binaryData.Data)
+
+		encData, nonce, err = encrypt(masterPassword, userSalt, binaryData.Data)
 	default:
 		return fmt.Errorf("%s: %w", op, ErrInvalidSecretType)
 	}
@@ -147,11 +212,20 @@ func (s *Service) StoreSecret(ctx context.Context, userID, secretType, secretNam
 		SName:     secretName,
 		Data:      encData,
 		IV:        nonce,
+		SumCheck:  sumcheck,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 
-	s.repository.SecretRepository.Create(ctx, secretData)
+	if err = s.repository.SecretRepository.Create(ctx, secretData); err != nil {
+		s.logger.ErrorContext(ctx, "failed to create secret", pkg.ErrAttr(err))
+		if errors.Is(err, repositories.ErrUniqueConstraintViolation) {
+			return fmt.Errorf("%s.UniqueConstraintViolation: %w", op, ErrSecretExists)
+		}
+
+		return fmt.Errorf("%s.CreateSecret: %w", op, err)
+	}
+
 	return nil
 }
 

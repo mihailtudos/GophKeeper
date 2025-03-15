@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/mihailtudos/gophkeeper/server/internal/domain"
 	"github.com/mihailtudos/gophkeeper/server/internal/pkg"
@@ -25,10 +26,14 @@ func NewSecretRepository(ctx context.Context, db *sql.DB, logger *slog.Logger) *
 func (sr *SecretsRepo) Create(ctx context.Context, secret domain.Secret) error {
 	op := "repositories.SecretsRepo.Create"
 
-	query := `INSERT INTO user_secrets (id, user_id, s_type, s_name, encrypted_data, iv, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	query := `INSERT INTO user_secrets (id, user_id, s_type, s_name, encrypted_data, iv, checksum, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
-	_, err := sr.db.ExecContext(ctx, query, secret.ID, secret.UserID, secret.SType, secret.SName, secret.Data, secret.IV, secret.CreatedAt, secret.UpdatedAt)
+	_, err := sr.db.ExecContext(ctx, query, secret.ID, secret.UserID, secret.SType, secret.SName, secret.Data, secret.IV, secret.SumCheck, secret.CreatedAt, secret.UpdatedAt)
 	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			return fmt.Errorf("%s: %w", op, ErrUniqueConstraintViolation)
+		}
+
 		sr.logger.ErrorContext(ctx, "failed to create secret", pkg.ErrAttr(err))
 		return fmt.Errorf("%s: %w", op, err)
 	}

@@ -17,14 +17,26 @@ type CardDetails struct {
 	CVV            string `json:"cvv"`
 }
 
-type PlainText string
-
-type BinaryData struct {
-	Data []byte // Field must be exported for proper encoding
+type PlainText struct {
+	Value string `json:"value"`
 }
 
-func (b BinaryData) StringBase64() string {
+type BinaryData struct {
+	Data []byte `json:"-"` // We exclude it from JSON marshaling
+}
+
+func (b BinaryData) ToBase64() string {
 	return base64.StdEncoding.EncodeToString(b.Data)
+}
+
+// Convert base64 string back to raw bytes
+func (b *BinaryData) FromBase64(encoded string) error {
+	data, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return err
+	}
+	b.Data = data
+	return nil
 }
 
 type Secret struct {
@@ -34,6 +46,7 @@ type Secret struct {
 	SName     string    `json:"s_name"`
 	Data      []byte    `json:"data"`
 	IV        []byte    `json:"-"`
+	SumCheck  []byte    `json:"-"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

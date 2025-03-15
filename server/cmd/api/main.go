@@ -29,28 +29,25 @@ func main() {
 	fmt.Printf("config: %+v\n", cfg)
 
 	ctx := context.Background()
-	// TODO: add db
-	db, err := db.NewDB(ctx, logger, cfg.Database)
+
+	DB, err := db.NewDB(ctx, logger, cfg.Database)
 	if err != nil {
 		logger.Error("failed to connect to database", "error", err)
 		return
 	}
 
-	defer db.Close()
+	defer DB.Close()
 	logger.Info("database connected successfully")
 
-	// TODO: add repositories
-	repository, err := repositories.NewRepository(ctx, db, logger)
+	repository, err := repositories.NewRepository(ctx, DB, logger)
 	if err != nil {
 		logger.Error("failed to create repository", "error", err)
 		log.Fatal("failed to create repository", "error", err)
 	}
 
-	// TODO: add server
-	services := services.NewServices(ctx, cfg, logger, repository)
+	ss := services.NewServices(ctx, cfg, logger, repository)
 
-	// TODO: add handlers
-	handlers := handlers.NewHandler(logger, services)
+	h := handlers.NewHandler(logger, ss)
 
 	// TODO: add router
 	router := chi.NewRouter()
@@ -64,14 +61,14 @@ func main() {
 
 	// TODO: add handlers
 	router.Route("/api", func(r chi.Router) {
-		r.Post("/register", handlers.Register)
-		r.Post("/login", handlers.Login)
+		r.Post("/register", h.Register)
+		r.Post("/login", h.Login)
 
 		r.Group(func(r chi.Router) {
 			r.Use(mw.Auth(cfg.Auth.SecretKey, logger))
 			r.Route("/secrets", func(r chi.Router) {
-				r.Post("/", handlers.Store)
-				r.Post("/{id}/decrypt", handlers.DecryptSecret)
+				r.Post("/", h.Store)
+				r.Post("/{id}/decrypt", h.DecryptSecret)
 			})
 		})
 	})

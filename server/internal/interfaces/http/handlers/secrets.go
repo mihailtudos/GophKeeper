@@ -25,8 +25,6 @@ type SecretResponse struct {
 }
 
 func (h *Handler) Store(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	userID := r.Header.Get("user_id")
 
 	// Generic request struct
@@ -44,25 +42,32 @@ func (h *Handler) Store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body.Close()
+	defer r.Body.Close()
 
 	requestData := SecretRequest{}
-	if err := json.Unmarshal(body, &requestData); err != nil {
+	if err = json.Unmarshal(body, &requestData); err != nil {
 		h.Logger.Error("failed to unmarshal request body", pkg.ErrAttr(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if err = h.Services.SecretsService.StoreSecret(r.Context(), userID, requestData.Type, requestData.Name, requestData.MasterPassword, requestData.Data); err != nil {
+	if err = h.Services.SecretsService.StoreSecret(r.Context(), userID, requestData.Type,
+		requestData.Name, requestData.MasterPassword, requestData.Data); err != nil {
 		if errors.Is(err, secrets.ErrInvalidSecretType) {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("invalid secret type"))
+			_, _ = w.Write([]byte("invalid secret type"))
+			return
+		}
+
+		if errors.Is(err, secrets.ErrSecretExists) {
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte("secret already exists"))
 			return
 		}
 
 		if errors.Is(err, repositories.ErrRecordNotFound) {
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("user not found"))
+			_, _ = w.Write([]byte("user not found"))
 			return
 		}
 
@@ -71,11 +76,7 @@ func (h *Handler) Store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = w.Write([]byte(requestData.Type)); err != nil {
-		h.Logger.Error("failed to write response", pkg.ErrAttr(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *Handler) DecryptSecret(w http.ResponseWriter, r *http.Request) {
@@ -140,14 +141,19 @@ func (h *Handler) jsonEncodeSecret(secret *domain.Secret) ([]byte, error) {
 			h.Logger.Error("failed to unmarshal card details", pkg.ErrAttr(err))
 			return nil, fmt.Errorf("failed to unmarshal card details: %w", err)
 		}
+
 		data = c
-
 	case "text":
-		data = string(secret.Data) // Plain text stored directly as a string
+		var t domain.PlainText
+		if err := json.Unmarshal(secret.Data, &t); err != nil {
+			h.Logger.Error("failed to unmarshal plain text", pkg.ErrAttr(err))
+			return nil, fmt.Errorf("failed to unmarshal plain text: %w", err)
+		}
 
+		data = t
 	case "binary":
 		binaryData := domain.BinaryData{Data: secret.Data}
-		data = binaryData.StringBase64() // Encode binary data as Base64
+		data = binaryData.ToBase64() // Encode binary data as Base64
 
 	default:
 		h.Logger.Error("unknown secret type", slog.String("secret_type", secret.SType))
