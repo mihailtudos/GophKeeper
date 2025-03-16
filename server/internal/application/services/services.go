@@ -19,13 +19,15 @@ type AuthService interface {
 	Login(ctx context.Context, lr auth.LoginRequest) (*auth.JWTAuthTokens, error)
 	GetAuthToken(ctx context.Context, token string) (string, error)
 	GetUserByToken(ctx context.Context, token string) (string, error)
+	RefreshToken(ctx context.Context, token string) (*auth.JWTAuthTokens, error)
 }
 
 type SecretsService interface {
 	StoreSecret(ctx context.Context, userID, secretType, secretName, masterPassword string, secret json.RawMessage) error
 	GetSecretByID(ctx context.Context, secretID, masterPassword string) (*domain.Secret, error)
-	GetUserSecrets(ctx context.Context, id string) ([]*domain.Secret, error)
+	GetUserSecrets(ctx context.Context, userID, masterPassword string) (*[]domain.Secret, error)
 }
+
 type Services struct {
 	AuthService    AuthService
 	SecretsService SecretsService

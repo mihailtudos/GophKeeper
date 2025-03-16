@@ -22,11 +22,13 @@ type UserRepository interface {
 
 type TokenRepository interface {
 	Create(ctx context.Context, token RefreshToken) error
+	GetRefreshToken(ctx context.Context, tokenID string) (*RefreshToken, error)
 }
 
 type SecretRepository interface {
 	Create(ctx context.Context, secret domain.Secret) error
 	GetSecretByID(ctx context.Context, secretID string) (*domain.Secret, error)
+	GetUserSecrets(ctx context.Context, userID string) (*[]domain.Secret, error)
 }
 
 type Repository struct {

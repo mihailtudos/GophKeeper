@@ -63,12 +63,16 @@ func main() {
 	router.Route("/api", func(r chi.Router) {
 		r.Post("/register", h.Register)
 		r.Post("/login", h.Login)
+		r.Post("/refresh", h.Refresh)
 
 		r.Group(func(r chi.Router) {
 			r.Use(mw.Auth(cfg.Auth.SecretKey, logger))
 			r.Route("/secrets", func(r chi.Router) {
 				r.Post("/", h.Store)
 				r.Post("/{id}/decrypt", h.DecryptSecret)
+			})
+			r.Route("/users", func(r chi.Router) {
+				r.Post("/secrets", h.GetSecrets)
 			})
 		})
 	})

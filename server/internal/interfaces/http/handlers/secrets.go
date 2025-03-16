@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+type MasterPassword struct {
+	MasterPassword string `json:"master_password"`
+}
+
 type SecretResponse struct {
 	ID        string      `json:"id"`
 	Type      string      `json:"type"`
@@ -86,11 +90,7 @@ func (h *Handler) DecryptSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type masterPassword struct {
-		MasterPassword string `json:"master_password"`
-	}
-
-	var password masterPassword
+	var password MasterPassword
 	if err := json.NewDecoder(r.Body).Decode(&password); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -111,19 +111,25 @@ func (h *Handler) DecryptSecret(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	encodedSecret, _ := h.jsonEncodeSecretData(secret)
+
+	data, err := json.Marshal(encodedSecret)
+	if err != nil {
+		h.Logger.Error("failed to marshal secret", pkg.ErrAttr(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	encodedSecret, _ := h.jsonEncodeSecret(secret)
-
-	if _, err = w.Write(encodedSecret); err != nil {
+	if _, err = w.Write(data); err != nil {
 		h.Logger.Error("failed to encode secret", pkg.ErrAttr(err))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
 
-func (h *Handler) jsonEncodeSecret(secret *domain.Secret) ([]byte, error) {
+func (h *Handler) jsonEncodeSecretData(secret *domain.Secret) (*SecretResponse, error) {
 	var data interface{}
 
 	switch secret.SType {
@@ -161,7 +167,7 @@ func (h *Handler) jsonEncodeSecret(secret *domain.Secret) ([]byte, error) {
 	}
 
 	// Unified Response
-	response := SecretResponse{
+	response := &SecretResponse{
 		ID:        secret.ID,
 		Type:      secret.SType,
 		Name:      secret.SName,
@@ -170,5 +176,5 @@ func (h *Handler) jsonEncodeSecret(secret *domain.Secret) ([]byte, error) {
 		UpdatedAt: secret.UpdatedAt,
 	}
 
-	return json.Marshal(response)
+	return response, nil
 }

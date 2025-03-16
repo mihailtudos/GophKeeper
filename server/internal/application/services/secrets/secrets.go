@@ -264,6 +264,36 @@ func (s *Service) GetSecretByID(ctx context.Context, secretID, masterPassword st
 	return secret, nil
 }
 
-func (s *Service) GetUserSecrets(ctx context.Context, id string) ([]*domain.Secret, error) {
-	return nil, nil
+func (s *Service) GetUserSecrets(ctx context.Context, userID, masterPassword string) (*[]domain.Secret, error) {
+	op := "services.SecretsService.GetUserSecrets"
+
+	userSalt, err := s.repository.UserRepository.GetUserSalt(ctx, userID)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to get user salt", pkg.ErrAttr(err))
+		return nil, fmt.Errorf("%s.GetUserSalt: %w", op, err)
+	}
+
+	secrets, err := s.repository.SecretRepository.GetUserSecrets(ctx, userID)
+	if err != nil {
+		s.logger.ErrorContext(ctx, "failed to get user secrets", pkg.ErrAttr(err))
+		return nil, fmt.Errorf("%s.GetUserSecrets: %w", op, err)
+	}
+
+	for i, secret := range *secrets {
+		var decSecret []byte
+		decSecret, err = decrypt(masterPassword, userSalt, secret.Data, secret.IV)
+		if err != nil {
+			s.logger.ErrorContext(ctx, "failed to decrypt secret", pkg.ErrAttr(err))
+			return nil, fmt.Errorf("%s.DecryptSecret: %w", op, err)
+		}
+
+		if decSecret == nil {
+			s.logger.ErrorContext(ctx, "decrypted secret is null")
+			return nil, fmt.Errorf("%s: %w", op, ErrDecryptionFailed)
+		}
+
+		(*secrets)[i].Data = decSecret
+	}
+
+	return secrets, nil
 }

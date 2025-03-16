@@ -8,8 +8,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+var defaultConfigPath = "./config"
+
 const (
-	defaultConfigPath  = "./config"
 	AccessTokenExpiry  = 15 * time.Minute
 	RefreshTokenExpiry = 7 * 24 * time.Minute // 7 days
 )

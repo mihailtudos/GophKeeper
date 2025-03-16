@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/mihailtudos/gophkeeper/server/internal/application/services/auth"
 	"github.com/mihailtudos/gophkeeper/server/internal/pkg"
-
 	"net/http"
 )
 
@@ -84,4 +83,44 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
+	// Extract refresh token from request
+	var requestData struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&requestData)
+	if err != nil || requestData.RefreshToken == "" {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	tokens, err := h.Services.AuthService.RefreshToken(r.Context(), requestData.RefreshToken)
+	if err != nil {
+		if errors.Is(err, auth.ErrTokenExpired) || errors.Is(err, auth.ErrTokenNotFound) {
+			http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+			return
+		}
+
+		h.Logger.Error("failed to refresh token", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	data, err := json.Marshal(tokens)
+	if err != nil {
+		h.Logger.Error("failed to marshal response", pkg.ErrAttr(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err = w.Write(data); err != nil {
+		h.Logger.Error("failed to write response", pkg.ErrAttr(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }

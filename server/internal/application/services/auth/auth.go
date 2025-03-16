@@ -21,10 +21,12 @@ var (
 	ErrUserAlreadyExists  = errors.New("user already exists")
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUserNotFound       = errors.New("user not found")
+	ErrTokenNotFound      = errors.New("token not found")
+	ErrTokenExpired       = errors.New("token is expired")
 )
 
 type Claims struct {
-    UserID string `json:"user_id"`
+	UserID string `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
@@ -187,4 +189,35 @@ func (s *AuthService) Login(ctx context.Context, lr LoginRequest) (*JWTAuthToken
 	}
 
 	return tokens, nil
+}
+
+func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*JWTAuthTokens, error) {
+	op := "auth.Refresh"
+
+	rt, err := s.repo.TokenRepository.GetRefreshToken(ctx, refreshToken)
+	if err != nil {
+		if errors.Is(err, repositories.ErrRecordNotFound) {
+			return nil, fmt.Errorf("%s.get: %w", op, ErrTokenNotFound)
+		}
+
+		return nil, fmt.Errorf("%s.get: %w", op, err)
+	}
+
+	// Check if token is expired or revoked
+	if rt.ExpiresAt.Before(time.Now()) || rt.Revoked {
+		return nil, fmt.Errorf("%s.expired: %w", op, ErrTokenExpired)
+	}
+
+	// Generate new access token
+	accessToken, err := s.CreateAccessToken(ctx, rt.UserID)
+	if err != nil {
+		s.logger.Error("failed to create access token", pkg.ErrAttr(err))
+		return nil, fmt.Errorf("%s.accessToken: %w", op, err)
+	}
+
+	return &JWTAuthTokens{
+		AccessToken:  accessToken,
+		RefreshToken: rt.Token,
+		ExpiresIn:    int(s.cfg.AccessTokenExpiry.Seconds()),
+	}, nil
 }

@@ -41,6 +41,45 @@ func (sr *SecretsRepo) Create(ctx context.Context, secret domain.Secret) error {
 	return nil
 }
 
+func (sr *SecretsRepo) GetUserSecrets(ctx context.Context, userID string) (*[]domain.Secret, error) {
+	op := "repositories.SecretsRepo.GetUserSecrets"
+
+	query := `SELECT id, user_id, s_type, s_name, encrypted_data, iv, created_at, updated_at FROM user_secrets WHERE user_id = $1`
+
+	rows, err := sr.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		sr.logger.ErrorContext(ctx, "failed to get user secrets", pkg.ErrAttr(err))
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+	secrets := make([]domain.Secret, 0)
+	for rows.Next() {
+		var secret domain.Secret
+		err := rows.Scan(
+			&secret.ID,
+			&secret.UserID,
+			&secret.SType,
+			&secret.SName,
+			&secret.Data,
+			&secret.IV,
+			&secret.CreatedAt,
+			&secret.UpdatedAt,
+		)
+		if err != nil {
+			sr.logger.ErrorContext(ctx, "failed to scan secret", pkg.ErrAttr(err))
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		secrets = append(secrets, secret)
+	}
+
+	if rows.Err() != nil {
+		sr.logger.ErrorContext(ctx, "failed to iterate over secrets", pkg.ErrAttr(err))
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	
+	return &secrets, nil
+}
+
 func (sr *SecretsRepo) GetSecretByID(ctx context.Context, secretID string) (*domain.Secret, error) {
 	op := "repositories.SecretsRepo.GetByID"
 
