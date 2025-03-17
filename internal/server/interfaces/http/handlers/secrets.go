@@ -1,0 +1,180 @@
+package handlers
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/go-chi/chi"
+	"github.com/mihailtudos/gophkeeper/internal/domain"
+	"github.com/mihailtudos/gophkeeper/internal/server/application/services/secrets"
+	"github.com/mihailtudos/gophkeeper/internal/server/infrastructure/repositories"
+	"github.com/mihailtudos/gophkeeper/pkg/logger"
+	"io"
+	"log/slog"
+	"net/http"
+	"time"
+)
+
+type MasterPassword struct {
+	MasterPassword string `json:"master_password"`
+}
+
+type SecretResponse struct {
+	ID        string      `json:"id"`
+	Type      string      `json:"type"`
+	Name      string      `json:"name"`
+	Data      interface{} `json:"data"`
+	CreatedAt time.Time   `json:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at"`
+}
+
+func (h *Handler) Store(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("user_id")
+
+	// Generic request struct
+	type SecretRequest struct {
+		Type           string          `json:"type"`
+		Name           string          `json:"name"`
+		Data           json.RawMessage `json:"data"`
+		MasterPassword string          `json:"master_password"`
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.Logger.Error("failed to read request body", logger.ErrAttr(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	defer r.Body.Close()
+
+	requestData := SecretRequest{}
+	if err = json.Unmarshal(body, &requestData); err != nil {
+		h.Logger.Error("failed to unmarshal request body", logger.ErrAttr(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if err = h.Services.SecretsService.StoreSecret(r.Context(), userID, requestData.Type,
+		requestData.Name, requestData.MasterPassword, requestData.Data); err != nil {
+		if errors.Is(err, secrets.ErrInvalidSecretType) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte("invalid secret type"))
+			return
+		}
+
+		if errors.Is(err, secrets.ErrSecretExists) {
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte("secret already exists"))
+			return
+		}
+
+		if errors.Is(err, repositories.ErrRecordNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte("user not found"))
+			return
+		}
+
+		h.Logger.Error("failed to store secret", logger.ErrAttr(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *Handler) DecryptSecret(w http.ResponseWriter, r *http.Request) {
+	secretID := chi.URLParam(r, "id")
+	if secretID == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var password MasterPassword
+	if err := json.NewDecoder(r.Body).Decode(&password); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if password.MasterPassword == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	h.Logger.DebugContext(r.Context(), "fetching secret by id", slog.String("secret_id", secretID))
+
+	secret, err := h.Services.SecretsService.GetSecretByID(r.Context(), secretID, password.MasterPassword)
+	if err != nil {
+		if errors.Is(err, secrets.ErrSecretNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+	}
+
+	encodedSecret, _ := h.jsonEncodeSecretData(secret)
+
+	data, err := json.Marshal(encodedSecret)
+	if err != nil {
+		h.Logger.Error("failed to marshal secret", logger.ErrAttr(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if _, err = w.Write(data); err != nil {
+		h.Logger.Error("failed to encode secret", logger.ErrAttr(err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) jsonEncodeSecretData(secret *domain.Secret) (*SecretResponse, error) {
+	var data interface{}
+
+	switch secret.SType {
+	case "login":
+		var l domain.LoginSecret
+		if err := json.Unmarshal(secret.Data, &l); err != nil {
+			h.Logger.Error("failed to unmarshal login secret", logger.ErrAttr(err))
+			return nil, fmt.Errorf("failed to unmarshal login secret: %w", err)
+		}
+		data = l
+
+	case "card":
+		var c domain.CardDetails
+		if err := json.Unmarshal(secret.Data, &c); err != nil {
+			h.Logger.Error("failed to unmarshal card details", logger.ErrAttr(err))
+			return nil, fmt.Errorf("failed to unmarshal card details: %w", err)
+		}
+
+		data = c
+	case "text":
+		var t domain.PlainText
+		if err := json.Unmarshal(secret.Data, &t); err != nil {
+			h.Logger.Error("failed to unmarshal plain text", logger.ErrAttr(err))
+			return nil, fmt.Errorf("failed to unmarshal plain text: %w", err)
+		}
+
+		data = t
+	case "binary":
+		binaryData := domain.BinaryData{Data: secret.Data}
+		data = binaryData.ToBase64() // Encode binary data as Base64
+
+	default:
+		h.Logger.Error("unknown secret type", slog.String("secret_type", secret.SType))
+		return nil, errors.New("unknown secret type")
+	}
+
+	// Unified Response
+	response := &SecretResponse{
+		ID:        secret.ID,
+		Type:      secret.SType,
+		Name:      secret.SName,
+		Data:      data,
+		CreatedAt: secret.CreatedAt,
+		UpdatedAt: secret.UpdatedAt,
+	}
+
+	return response, nil
+}
