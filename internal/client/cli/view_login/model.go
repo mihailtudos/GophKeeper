@@ -1,10 +1,13 @@
-package viewregister
+package viewlogin
 
 import (
+	"context"
 	"fmt"
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mihailtudos/gophkeeper/internal/client/dto"
+	"log/slog"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,22 +24,32 @@ var (
 	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
 )
 
-type Model struct {
-	State      string
-	result     string
-	focusIndex int
-	Inputs     []textinput.Model
-	cursorMode cursor.Mode
-	AppName    string
-	ErrorMsg   string
+type AuthProvider interface {
+	Login(ctx context.Context, email, password string) (*dto.LoginResponse, error)
+	StoreTokens(ctx context.Context, response *dto.LoginResponse) error
+	GetAccessToken(ctx context.Context) (string, error)
 }
 
-func NewModel(AppName, ErrorMsg string) Model {
+type Model struct {
+	State        string
+	result       string
+	focusIndex   int
+	Inputs       []textinput.Model
+	cursorMode   cursor.Mode
+	AppName      string
+	ErrorMsg     string
+	AuthProvider AuthProvider
+	Logger       *slog.Logger
+}
+
+func NewModel(ap AuthProvider, l *slog.Logger, AppName, ErrorMsg string) Model {
 	m := Model{
-		AppName:  AppName,
-		ErrorMsg: ErrorMsg,
-		State:    "register",
-		Inputs:   make([]textinput.Model, 3),
+		AppName:      AppName,
+		ErrorMsg:     ErrorMsg,
+		State:        "register",
+		Inputs:       make([]textinput.Model, 2),
+		AuthProvider: ap,
+		Logger:       l,
 	}
 
 	var t textinput.Model
@@ -53,10 +66,6 @@ func NewModel(AppName, ErrorMsg string) Model {
 			t.TextStyle = focusedStyle
 			t.CharLimit = 64
 		case 1:
-			t.Placeholder = "Password"
-			t.EchoMode = textinput.EchoPassword
-			t.EchoMode = textinput.EchoPassword
-		case 2:
 			t.Placeholder = "Password"
 			t.EchoMode = textinput.EchoPassword
 			t.EchoMode = textinput.EchoPassword
@@ -95,32 +104,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Did the user press enter while the submit button was focused?
 			// If so, exit.
 			if s == "enter" && m.focusIndex == len(m.Inputs) {
-				//!!!  здесь начинается процесс регистрации
-				if m.Inputs[1].Value() != m.Inputs[2].Value() {
+				if m.Inputs[1].Value() == "" {
 					m.State = "again"
-					m.result = "invalid password, try again"
+					m.result = "password is required, try again"
 					m.focusIndex = -1
 					return m, nil
 				}
-				//err := m.grpcClient.Register(context.Background(), m.Inputs[0].Value(), m.Inputs[1].Value())
-				//if err != nil {
-				//	if err.Error() == fmt.Sprintf("user with email %s already registered", m.Inputs[0].Value()) {
-				//		m.State = "completed"
-				//	} else {
-				//		m.State = "error"
-				//	}
-				//	m.result = err.Error()
-				//	m.focusIndex = -1
-				//	return m, nil
-				//}
+
+				tokens, err := m.AuthProvider.Login(context.Background(), m.Inputs[0].Value(), m.Inputs[1].Value())
+				if err != nil {
+					if err.Error() == fmt.Sprintf("user with email %s already registered", m.Inputs[0].Value()) {
+						m.State = "completed"
+					} else {
+						m.State = "error"
+					}
+					m.result = err.Error()
+					m.focusIndex = -1
+					return m, nil
+				}
+
+				if err = m.AuthProvider.StoreTokens(context.Background(), tokens); err != nil {
+					m.State = "error"
+					m.Logger.Error("failed to store tokens", "err", err)
+					m.result = "failed to store tokens"
+					m.focusIndex = -1
+					return m, nil
+				}
+
 				m.State = "completed"
-				m.result = "registration completed successfully"
+				m.result = "you logged in successfully"
 				m.focusIndex = -1
 				return m, nil
 			}
-			if s == "enter" && m.focusIndex == -1 {
-				return m, tea.Quit
-			}
+
 			// Cycle indexes
 			if s == "up" || s == "shift+tab" {
 				m.focusIndex--
@@ -173,7 +189,7 @@ func (m Model) updateInputs(msg tea.Msg) tea.Cmd {
 
 func (m Model) View() string {
 	var s strings.Builder
-	fmt.Fprintf(&s, "%s\n\n%s\n\n", headerStyle.Render(m.AppName), "Register:")
+	fmt.Fprintf(&s, "%s\n\n%s\n\n", headerStyle.Render(m.AppName), "Login:")
 
 	for i := range m.Inputs {
 		s.WriteString(m.Inputs[i].View())

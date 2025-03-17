@@ -8,11 +8,21 @@ import (
 	"sync"
 )
 
-var defaultConfigPath = "./config/client_config.yaml"
+const (
+	defaultConfigPath               = "./config/client_config.yaml"
+	defaultServiceAccessTokenKey    = "GophKeeperAccessToken"
+	defaultServiceRefreshTokenKey   = "GophKeeperRefreshToken"
+	defaultServiceMasterPasswordKey = "GophKeeperMasterPassword"
+	defaultAppName                  = "gophkeeper-client"
+)
 
 type Config struct {
-	HTTPServer HTTPServer   `mapstructure:"http_server"`
-	Logger     LoggerConfig `mapstructure:"logger"`
+	HTTPServer               HTTPServer   `mapstructure:"http_server"`
+	Logger                   LoggerConfig `mapstructure:"logger"`
+	ServiceAccessTokenKey    string       `mapstructure:"service_access_token_key" json:"service_access_token_key" yaml:"service_access_token_key"`
+	ServiceRefreshTokenKey   string       `mapstructure:"service_refresh_token_key" json:"service_refresh_token_key" yaml:"service_refresh_token_key"`
+	ServiceMasterPasswordKey string       `mapstructure:"service_master_password_key" json:"service_master_password_key" yaml:"service_master_password_key"`
+	AppName                  string       `mapstructure:"app_name" json:"app_name" yaml:"app_name"`
 }
 
 type HTTPServer struct {
@@ -31,6 +41,10 @@ var (
 	once     sync.Once
 )
 
+func (h HTTPServer) HostUrl() string {
+	return fmt.Sprintf("%s:%s", h.Host, h.Port)
+}
+
 func MustNewConfig() *Config {
 	once.Do(func() {
 		cfg := &Config{}
@@ -42,6 +56,11 @@ func MustNewConfig() *Config {
 		if err := viper.Unmarshal(cfg); err != nil {
 			panic(err)
 		}
+
+		cfg.ServiceAccessTokenKey = defaultServiceAccessTokenKey
+		cfg.ServiceRefreshTokenKey = defaultServiceRefreshTokenKey
+		cfg.ServiceMasterPasswordKey = defaultServiceMasterPasswordKey
+		cfg.AppName = defaultAppName
 
 		instance = cfg
 	})

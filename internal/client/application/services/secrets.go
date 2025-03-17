@@ -1,10 +1,13 @@
-package main
+package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mihailtudos/gophkeeper/internal/client/config"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -19,14 +22,26 @@ type Secret struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func fetchSecretsFromServer(accessToken, masterPassword string) ([]Secret, error) {
+type SecretService struct {
+	logger *slog.Logger
+	cfg    *config.Config
+}
+
+func NewSecretsService(ctx context.Context, l *slog.Logger, cfg *config.Config) *SecretService {
+	return &SecretService{
+		logger: l,
+		cfg:    cfg,
+	}
+}
+
+func (s *SecretService) fetchSecretsFromServer(accessToken, masterPassword string) ([]Secret, error) {
 	data, _ := json.Marshal(struct {
 		MasterPassword string `json:"master_password"`
 	}{
 		MasterPassword: masterPassword,
 	})
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/secrets", serverAddress), bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/secrets", s.cfg.HTTPServer.HostUrl()), bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}

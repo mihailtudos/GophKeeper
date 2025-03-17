@@ -2,58 +2,37 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/zalando/go-keyring"
+	"github.com/mihailtudos/gophkeeper/internal/client/config"
+	"github.com/mihailtudos/gophkeeper/internal/client/dto"
+	"github.com/mihailtudos/gophkeeper/pkg/keyring"
 	"io"
 	"log/slog"
 	"net/http"
 )
 
-type RefreshTokenResponse struct {
-	AccessToken string `json:"access_token"`
-	ExpiresIn   int    `json:"expires_in"`
-}
-type LoginResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
+type AuthService struct {
+	logger *slog.Logger
+	config *config.Config
 }
 
-const (
-	serverAddress            = "http://localhost:8080"
-	serviceAccessTokenKey    = "GophKeeperAccessToken"
-	serviceRefreshTokenKey   = "GophKeeperRefreshToken"
-	serviceMasterPasswordKey = "GophKeeperMasterPassword"
-	user                     = "api-key"
-)
-
-func storeAuthCreds(key string, token string) error {
-	err := keyring.Set(key, user, token)
-	if err != nil {
-		return err
+func NewAuthService(ctx context.Context, logger *slog.Logger, cfg *config.Config) *AuthService {
+	return &AuthService{
+		logger: logger,
+		config: cfg,
 	}
-
-	return nil
 }
 
-func getAuthCreds(key string) (string, error) {
-	token, err := keyring.Get(key, user)
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
-}
-
-func refreshToken(refreshToken string) (*RefreshTokenResponse, error) {
+func (a *AuthService) refreshToken(refreshToken string) (*dto.RefreshTokenResponse, error) {
 	data, _ := json.Marshal(struct {
 		RefreshToken string `json:"refresh_token"`
 	}{
 		RefreshToken: refreshToken,
 	})
 
-	req, err := http.NewRequest(http.MethodPost, serverAddress+"/api/refresh", bytes.NewReader(data))
+	req, err := http.NewRequest(http.MethodPost, a.config.HTTPServer.HostUrl()+"/api/refresh", bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create login http request form: %v", err)
 	}
@@ -74,7 +53,7 @@ func refreshToken(refreshToken string) (*RefreshTokenResponse, error) {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var refreshTokenResp RefreshTokenResponse
+	var refreshTokenResp dto.RefreshTokenResponse
 	if err = json.Unmarshal(body, &refreshTokenResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response body: %w", err)
 	}
@@ -82,26 +61,26 @@ func refreshToken(refreshToken string) (*RefreshTokenResponse, error) {
 	return &refreshTokenResp, nil
 }
 
-func cleanLoginCreds() {
-	_ = storeAuthCreds(serviceRefreshTokenKey, "")
-	_ = storeAuthCreds(serviceAccessTokenKey, "")
+func (a *AuthService) cleanLoginCreds() {
+	_ = keyring.StoreAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName, "")
+	_ = keyring.StoreAuthCreds(a.config.ServiceRefreshTokenKey, a.config.AppName, "")
 }
 
-func setNewAccessToken() error {
-	rt, err := getAuthCreds(serviceRefreshTokenKey)
-	logger.Debug("exising refresh token", slog.String("refresh_token", rt))
+func (a *AuthService) setNewAccessToken() error {
+	rt, err := keyring.GetAuthCreds(a.config.ServiceRefreshTokenKey, a.config.AppName)
+	a.logger.Debug("exising refresh token", slog.String("refresh_token", rt))
 	if err != nil || rt == "" {
-		cleanLoginCreds()
+		a.cleanLoginCreds()
 		return fmt.Errorf("failed to get refresh token: %w", err)
 	}
 
-	accessTokenResp, errAuth := refreshToken(rt)
+	accessTokenResp, errAuth := a.refreshToken(rt)
 	if errAuth != nil {
-		cleanLoginCreds()
+		a.cleanLoginCreds()
 		return fmt.Errorf("failed to refresh token: %w", errAuth)
 	} else {
-		if err = storeAuthCreds(serviceAccessTokenKey, accessTokenResp.AccessToken); err != nil {
-			cleanLoginCreds()
+		if err = keyring.StoreAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName, accessTokenResp.AccessToken); err != nil {
+			a.cleanLoginCreds()
 			return fmt.Errorf("failed to store access token: %w", err)
 		}
 	}
@@ -109,11 +88,50 @@ func setNewAccessToken() error {
 	return nil
 }
 
-func handleLogin(f loginForm) (*LoginResponse, error) {
-	data, _ := json.Marshal(f)
+func (a *AuthService) StoreTokens(ctx context.Context, response *dto.LoginResponse) error {
+	if err := keyring.StoreAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName, response.AccessToken); err != nil {
+		return fmt.Errorf("failed to store access token: %w", err)
+	}
+	if err := keyring.StoreAuthCreds(a.config.ServiceRefreshTokenKey, a.config.AppName, response.RefreshToken); err != nil {
+		return fmt.Errorf("failed to store refresh token: %w", err)
+	}
 
-	req, err := http.NewRequest(http.MethodPost, serverAddress+"/api/login", bytes.NewReader(data))
+	return nil
+}
+
+func (a *AuthService) GetAccessToken(ctx context.Context) (string, error) {
+	token, err := keyring.GetAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName)
+	if err != nil || token == "" {
+		if err = a.setNewAccessToken(); err != nil {
+			return "", fmt.Errorf("failed to set new access token: %w", err)
+		}
+	}
+
+	token, err = keyring.GetAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName)
+	if err != nil || token == "" {
+		return "", fmt.Errorf("failed to get access token: %w", err)
+	}
+
+	return token, nil
+}
+
+func (a *AuthService) Login(ctx context.Context, username, password string) (*dto.LoginResponse, error) {
+	op := "client.services.AuthService.Login"
+	log := a.logger.With(
+		slog.String("op", op),
+	)
+
+	data, _ := json.Marshal(struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}{
+		Username: username,
+		Password: password,
+	})
+
+	req, err := http.NewRequest(http.MethodPost, a.config.HTTPServer.HostUrl()+"/api/login", bytes.NewReader(data))
 	if err != nil {
+		log.Error("failed to create login http request form", slog.String("err", err.Error()))
 		return nil, fmt.Errorf("failed to create login http request form: %v", err)
 	}
 
@@ -133,10 +151,31 @@ func handleLogin(f loginForm) (*LoginResponse, error) {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var loginResp LoginResponse
+	var loginResp dto.LoginResponse
 	if err = json.Unmarshal(body, &loginResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	return &loginResp, nil
+}
+
+func (a *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*dto.RefreshTokenResponse, error) {
+	op := "client.services.AuthService.Register"
+	log := a.logger.With(
+		slog.String("op", op),
+	)
+
+	log.Debug("refreshing token")
+
+	return nil, nil
+}
+
+func (a *AuthService) StoreBackupKey(ctx context.Context, key string) error {
+	op := "client.services.AuthService.StoreBackupKey"
+	log := a.logger.With(
+		slog.String("op", op),
+	)
+	log.Debug("storing backup key")
+
+	return keyring.StoreAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName, key)
 }

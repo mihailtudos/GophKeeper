@@ -1,13 +1,10 @@
-package viewauth
+package viewhome
 
 import (
-	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mihailtudos/gophkeeper/internal/client/cli/messages"
 	"strings"
-	"time"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 var (
@@ -63,18 +60,20 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	s := strings.Builder{}
-	s.WriteString(headerStyle.Render(m.AppName) + "\n")
+	s.WriteString(headerStyle.Render(m.AppName) + "\n\n")
 
-	buttons := make([]string, len(choices))
-	for i := 0; i < len(choices); i++ {
-		if m.cursor == i {
-			buttons[i] = fmt.Sprintf("[ %s ]", focusedStyle.Render(choices[i]))
-		} else {
-			buttons[i] = fmt.Sprintf("[ %s ]", blurredStyle.Render(choices[i]))
-		}
-	}
+	s.WriteString("Your secrets:\n")
 
-	fmt.Fprintf(&s, "\n\n%s\t%s\n\n", buttons[0], buttons[1])
+	//buttons := make([]string, len(choices))
+	//for i := 0; i < len(choices); i++ {
+	//	if m.cursor == i {
+	//		buttons[i] = fmt.Sprintf("[ %s ]", focusedStyle.Render(choices[i]))
+	//	} else {
+	//		buttons[i] = fmt.Sprintf("[ %s ]", blurredStyle.Render(choices[i]))
+	//	}
+	//}
+
+	//fmt.Fprintf(&s, "\n\n%s\t%s\n\n", buttons[0], buttons[1])
 
 	s.WriteString("\n(press ctrl+c or esc quit)\n\n")
 
@@ -84,13 +83,5 @@ func (m Model) View() string {
 func (m Model) ActionMsg(action string) func() tea.Msg {
 	return func() tea.Msg {
 		return messages.ActionMsg{Value: action}
-	}
-}
-
-// Fake authentication function (simulating API call)
-func fakeAuth(username, password string) tea.Cmd {
-	return func() tea.Msg {
-		time.Sleep(time.Second)
-		return messages.LoginSuccessMsg{Token: "fake-jwt-token"}
 	}
 }

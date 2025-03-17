@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/mihailtudos/gophkeeper/internal/client"
+	"github.com/mihailtudos/gophkeeper/internal/client/application/services"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -30,7 +31,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	app := client.NewApp(ctx, cfg, Logger)
+	s := services.NewServices(ctx, Logger, cfg)
+	
+	app := client.NewApp(ctx, cfg, Logger, s.AuthService)
 	//m := NewModel(cfg)
 	stop := make(chan os.Signal, 1)
 	go app.Run(ctx, stop)
