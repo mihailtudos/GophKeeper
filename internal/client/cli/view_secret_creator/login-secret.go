@@ -22,11 +22,11 @@ func (m Model) renderLoginSecretView() string {
 		fieldName := ""
 		switch i {
 		case 0:
-			fieldName = "Username:"
-		case 1:
-			fieldName = "Password:"
-		case 2:
 			fieldName = "Name:"
+		case 1:
+			fieldName = "Username:"
+		case 2:
+			fieldName = "Password:"
 		}
 
 		if i == m.focusIndex {
@@ -35,12 +35,12 @@ func (m Model) renderLoginSecretView() string {
 			s.WriteString(blurredStyle.Render(fieldName) + " ")
 		}
 
-		if m.ErrorMsg != "" {
-			s.WriteString(errorStyle.Render(m.ErrorMsg) + "\n")
-		}
-
 		s.WriteString(input.View())
 		s.WriteString("\n\n")
+	}
+
+	if m.ErrorMsg != "" {
+		s.WriteString(errorStyle.Render(m.ErrorMsg) + "\n")
 	}
 
 	s.WriteString("\nPress tab to cycle through fields, enter to submit\n")
@@ -54,14 +54,14 @@ func (m *Model) initializeLoginInputs() {
 
 	// Set up website input
 	inputs[0] = textinput.New()
-	inputs[0].Placeholder = "(e.g. www.example.com)"
+	inputs[0].Placeholder = "(e.g. example.com)"
 	inputs[0].CharLimit = 128
 	inputs[0].Width = 40
+	inputs[0].Focus()
 
 	// Set up username input
 	inputs[1] = textinput.New()
 	inputs[1].Placeholder = "Username"
-	inputs[1].Focus()
 	inputs[1].CharLimit = 64
 	inputs[1].Width = 40
 

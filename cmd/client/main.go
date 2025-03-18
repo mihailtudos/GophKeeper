@@ -32,8 +32,8 @@ func main() {
 	defer cancel()
 
 	s := services.NewServices(ctx, Logger, cfg)
-	
-	app := client.NewApp(ctx, cfg, Logger, s.AuthService)
+
+	app := client.NewApp(ctx, cfg, Logger, s)
 	//m := NewModel(cfg)
 	stop := make(chan os.Signal, 1)
 	go app.Run(ctx, stop)

@@ -16,6 +16,7 @@ type AuthServiceProvider interface {
 }
 
 type SecretsServiceProvider interface {
+	CreateSecret(ctx context.Context, message dto.SecretMessage) error
 }
 
 type Services struct {
@@ -26,10 +27,11 @@ type Services struct {
 }
 
 func NewServices(ctx context.Context, l *slog.Logger, cfg *config.Config) *Services {
+	as := NewAuthService(ctx, l, cfg)
 	return &Services{
 		Logger:         l,
 		Config:         cfg,
-		AuthService:    NewAuthService(ctx, l, cfg),
-		SecretsService: NewSecretsService(ctx, l, cfg),
+		AuthService:    as,
+		SecretsService: NewSecretsService(ctx, as, l, cfg),
 	}
 }

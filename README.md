@@ -38,3 +38,18 @@ Then run the `up` command to apply the migration or `down` to undo the migration
     goose -s -dir ./migrations up
     goose -s -dir ./migrations down
 ```
+
+To run the client run the following command:
+
+```shell
+  make run/client
+```
+
+By default, the client will read the yaml configuration file form `./config/client_config.yaml`. 
+
+However, you can overwrite the default configuration by passing the `-c` flag: `-c=./config/client_config.yaml` or by passing an ENV variable: `CLIENT_CONFIG_PATH=./config/client_config.yaml`.
+
+For example:
+```sh
+    CLIENT_CONFIG_PATH=./config/client_config.yaml go run cmd/client/main.go
+```

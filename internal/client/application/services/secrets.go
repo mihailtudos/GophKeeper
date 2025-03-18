@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/mihailtudos/gophkeeper/internal/client/config"
+	"github.com/mihailtudos/gophkeeper/internal/client/dto"
 	"io"
 	"log/slog"
 	"net/http"
@@ -23,15 +25,26 @@ type Secret struct {
 }
 
 type SecretService struct {
-	logger *slog.Logger
-	cfg    *config.Config
+	logger      *slog.Logger
+	cfg         *config.Config
+	AuthService AuthServiceProvider
 }
 
-func NewSecretsService(ctx context.Context, l *slog.Logger, cfg *config.Config) *SecretService {
+func NewSecretsService(ctx context.Context, as AuthServiceProvider, l *slog.Logger, cfg *config.Config) *SecretService {
 	return &SecretService{
-		logger: l,
-		cfg:    cfg,
+		AuthService: as,
+		logger:      l,
+		cfg:         cfg,
 	}
+}
+
+func (s *SecretService) CreateSecret(ctx context.Context, message dto.SecretMessage) error {
+	accessToken, err := s.AuthService.GetAccessToken(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get access token: %w", err)
+	}
+	s.logger.Debug("access token", slog.String("token", accessToken))
+	return errors.New("not implemented")
 }
 
 func (s *SecretService) fetchSecretsFromServer(accessToken, masterPassword string) ([]Secret, error) {

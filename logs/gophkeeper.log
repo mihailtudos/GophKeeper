@@ -127,3 +127,36 @@ time=2025-03-18T13:07:57.683+02:00 level=INFO msg="starting application" op=clie
 time=2025-03-18T14:19:56.149+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
 time=2025-03-18T14:19:56.149+02:00 level=DEBUG msg="stopping application" signal=terminated
 time=2025-03-18T14:19:56.149+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T14:25:00.556+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T14:25:00.556+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T14:25:00.624+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T14:25:16.872+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T14:25:16.872+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T14:25:16.872+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T14:26:18.381+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T14:26:18.381+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T14:26:18.455+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T14:26:31.775+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T14:26:31.775+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T14:26:31.775+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T14:27:03.564+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T14:27:03.564+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T14:27:03.629+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T14:27:08.806+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T14:27:08.806+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T14:27:08.806+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T14:28:33.168+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T14:28:33.168+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T14:28:33.239+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T14:28:40.876+02:00 level=DEBUG msg="access token" token=strongpassword123
+time=2025-03-18T14:29:40.875+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T14:29:40.875+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T14:29:40.875+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T14:29:42.530+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T14:29:42.530+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T14:29:42.595+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T14:29:56.493+02:00 level=DEBUG msg="access token" token=strongpassword123
+time=2025-03-18T14:29:58.953+02:00 level=DEBUG msg="access token" token=strongpassword123
+time=2025-03-18T14:30:04.143+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T14:30:04.143+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T14:30:04.143+02:00 level=DEBUG msg="application stopped"

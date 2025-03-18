@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mihailtudos/gophkeeper/internal/client/application/services"
 	"github.com/mihailtudos/gophkeeper/internal/client/cli/messages"
 	viewauth "github.com/mihailtudos/gophkeeper/internal/client/cli/view_auth"
 	viewbackup "github.com/mihailtudos/gophkeeper/internal/client/cli/view_backup"
@@ -12,23 +13,11 @@ import (
 	viewregister "github.com/mihailtudos/gophkeeper/internal/client/cli/view_register"
 	viewsecretcreator "github.com/mihailtudos/gophkeeper/internal/client/cli/view_secret_creator"
 	"github.com/mihailtudos/gophkeeper/internal/client/config"
-	"github.com/mihailtudos/gophkeeper/internal/client/dto"
 	"github.com/mihailtudos/gophkeeper/pkg/keyring"
 	"log/slog"
 	"os"
 	"syscall"
 )
-
-type Auth interface {
-	Login(ctx context.Context, username, password string) (*dto.LoginResponse, error)
-	StoreTokens(ctx context.Context, response *dto.LoginResponse) error
-	GetAccessToken(ctx context.Context) (string, error)
-	StoreBackupKey(ctx context.Context, key string) error
-}
-
-type Services interface {
-	Auth
-}
 
 // ScreenType defines the different screens
 type ScreenType int
@@ -66,7 +55,7 @@ type App struct {
 	Cfg       *config.Config
 	ch        chan Message
 	MainModel MainModel
-	Auth      Auth
+	Services  *services.Services
 }
 
 type Message struct {
@@ -75,9 +64,9 @@ type Message struct {
 	Value []byte `json:"value"`
 }
 
-func NewApp(ctx context.Context, cfg *config.Config, Logger *slog.Logger, s Services) *App {
+func NewApp(ctx context.Context, cfg *config.Config, Logger *slog.Logger, s *services.Services) *App {
 	startScreen := AuthScreen
-	at, err := s.GetAccessToken(ctx)
+	at, err := s.AuthService.GetAccessToken(ctx)
 	if err != nil {
 		Logger.Debug("failed to retrieve access token", slog.String("error", err.Error()))
 	}
@@ -100,10 +89,10 @@ func NewApp(ctx context.Context, cfg *config.Config, Logger *slog.Logger, s Serv
 			currentScreen: startScreen,
 			authModel:     viewauth.NewModel(AppName, ""),
 			registerModel: viewregister.NewModel(AppName, ""),
-			loginModel:    viewlogin.NewModel(s, Logger, AppName, ""),
-			backupModel:   viewbackup.NewModel(s, Logger, AppName, ""),
+			loginModel:    viewlogin.NewModel(s.AuthService, Logger, AppName, ""),
+			backupModel:   viewbackup.NewModel(s.AuthService, Logger, AppName, ""),
 			homeModel:     viewhome.NewModel(AppName, ""),
-			secretCreator: viewsecretcreator.NewModel("SecretsProvider", AppName, ""),
+			secretCreator: viewsecretcreator.NewModel(s.SecretsService, AppName, ""),
 		},
 		Logger: Logger,
 		Cfg:    cfg,
