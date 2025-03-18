@@ -1,0 +1,15 @@
+time=2025-03-18T11:03:02.554+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T11:03:02.554+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T11:03:02.554+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T11:17:02.394+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T11:17:02.394+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T11:17:02.460+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T11:17:10.957+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T11:17:10.957+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T11:17:10.957+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T11:23:46.224+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T11:23:46.224+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T11:23:46.298+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T11:24:01.023+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T11:24:01.024+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T11:24:01.024+02:00 level=DEBUG msg="application stopped"
