@@ -196,6 +196,6 @@ func (m Model) View() string {
 		s.WriteString(fmt.Sprintf("\n%s\n", m.result))
 	}
 
-	s.WriteString("\n(press ctrl+c or esc quit)\n")
+	s.WriteString("\nctrl+c, esc - quit\n\n")
 	return s.String()
 }

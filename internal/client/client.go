@@ -34,8 +34,9 @@ type Services interface {
 type ScreenType int
 
 const (
-	AppName               = "GopherKeep"
-	AuthScreen ScreenType = iota
+	AppName                  = "GopherKeep"
+	backToHomeKey            = "back_to_home"
+	AuthScreen    ScreenType = iota
 	LoginScreen
 	RegisterScreen
 	BackupScreen
@@ -102,7 +103,7 @@ func NewApp(ctx context.Context, cfg *config.Config, Logger *slog.Logger, s Serv
 			loginModel:    viewlogin.NewModel(s, Logger, AppName, ""),
 			backupModel:   viewbackup.NewModel(s, Logger, AppName, ""),
 			homeModel:     viewhome.NewModel(AppName, ""),
-			secretCreator: viewsecretcreator.NewModel(AppName, ""),
+			secretCreator: viewsecretcreator.NewModel("SecretsProvider", AppName, ""),
 		},
 		Logger: Logger,
 		Cfg:    cfg,
@@ -111,9 +112,7 @@ func NewApp(ctx context.Context, cfg *config.Config, Logger *slog.Logger, s Serv
 
 func (a *App) Run(ctx context.Context, stop chan os.Signal) {
 	const op = "client.Run"
-	Logger := a.Logger.With(
-		slog.String("op", op),
-	)
+	Logger := a.Logger.With(slog.String("op", op))
 
 	Logger.Info("starting application")
 
@@ -159,8 +158,8 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			newModel, cmd = m.backupModel.Update(msg)
 			m.backupModel = newModel.(viewbackup.Model)
 		case SecretCreatorScreen:
-			newModel, cmd = m.backupModel.Update(msg)
-			m.backupModel = newModel.(viewbackup.Model)
+			newModel, cmd = m.secretCreator.Update(msg)
+			m.secretCreator = newModel.(viewsecretcreator.Model)
 		}
 
 		// If the screen returned a command (not nil), pass it along
@@ -184,6 +183,8 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.currentScreen = HomeScreen
 		case viewhome.CreateNewSecretMessageKey:
 			m.currentScreen = SecretCreatorScreen
+		case backToHomeKey:
+			m.currentScreen = HomeScreen
 		}
 		return m, nil
 	}

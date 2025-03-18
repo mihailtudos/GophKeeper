@@ -76,7 +76,7 @@ func (m Model) View() string {
 
 	fmt.Fprintf(&s, "\n\n%s\t%s\n\n", buttons[0], buttons[1])
 
-	s.WriteString("\n(press ctrl+c or esc quit)\n\n")
+	s.WriteString("\nctrl+c, esc - quit\n\n")
 
 	return s.String()
 }
