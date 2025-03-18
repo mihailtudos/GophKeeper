@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/mihailtudos/gophkeeper/internal/client"
+	"github.com/mihailtudos/gophkeeper/internal/client/application/security"
 	"github.com/mihailtudos/gophkeeper/internal/client/application/services"
 	"log/slog"
 	"os"
@@ -31,7 +32,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	s := services.NewServices(ctx, Logger, cfg)
+	km := security.NewKeyManager()
+
+	s := services.NewServices(ctx, Logger, cfg, km)
 
 	app := client.NewApp(ctx, cfg, Logger, s)
 	//m := NewModel(cfg)

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/mihailtudos/gophkeeper/internal/client/application/security"
 	"github.com/mihailtudos/gophkeeper/internal/client/application/services"
 	"github.com/mihailtudos/gophkeeper/internal/client/cli/messages"
 	viewauth "github.com/mihailtudos/gophkeeper/internal/client/cli/view_auth"
@@ -13,19 +15,20 @@ import (
 	viewregister "github.com/mihailtudos/gophkeeper/internal/client/cli/view_register"
 	viewsecretcreator "github.com/mihailtudos/gophkeeper/internal/client/cli/view_secret_creator"
 	"github.com/mihailtudos/gophkeeper/internal/client/config"
-	"github.com/mihailtudos/gophkeeper/pkg/keyring"
 	"log/slog"
 	"os"
 	"syscall"
+	"time"
 )
 
 // ScreenType defines the different screens
 type ScreenType int
 
 const (
-	AppName                  = "GopherKeep"
-	backToHomeKey            = "back_to_home"
-	AuthScreen    ScreenType = iota
+	AppName                     = "GopherKeep"
+	backToHomeKey               = "back_to_home"
+	logoutMessageKey            = "logout"
+	AuthScreen       ScreenType = iota
 	LoginScreen
 	RegisterScreen
 	BackupScreen
@@ -41,13 +44,16 @@ var (
 
 // MainModel manages which screen is active
 type MainModel struct {
-	currentScreen ScreenType
-	authModel     viewauth.Model
-	registerModel viewregister.Model
-	loginModel    viewlogin.Model
-	homeModel     viewhome.Model
-	backupModel   viewbackup.Model
-	secretCreator viewsecretcreator.Model
+	currentScreen             ScreenType
+	authModel                 viewauth.Model
+	registerModel             viewregister.Model
+	loginModel                viewlogin.Model
+	homeModel                 viewhome.Model
+	backupModel               viewbackup.Model
+	secretCreator             viewsecretcreator.Model
+	keyManager                security.KeyManagerProvider
+	cfg                       *config.Config
+	isNotAuthenticatedHandled bool
 }
 
 type App struct {
@@ -72,7 +78,7 @@ func NewApp(ctx context.Context, cfg *config.Config, Logger *slog.Logger, s *ser
 	}
 
 	if at != "" {
-		b, err := keyring.GetAuthCreds(cfg.ServiceMasterPasswordKey, cfg.AppName)
+		b, err := s.KeyManager.GetKey(cfg.ServiceMasterPasswordKey, cfg.AppName)
 		if err != nil {
 			Logger.Debug("failed to retrieve the backup key", slog.String("error", err.Error()))
 		}
@@ -87,6 +93,8 @@ func NewApp(ctx context.Context, cfg *config.Config, Logger *slog.Logger, s *ser
 	return &App{
 		MainModel: MainModel{
 			currentScreen: startScreen,
+			keyManager:    s.KeyManager,
+			cfg:           cfg,
 			authModel:     viewauth.NewModel(AppName, ""),
 			registerModel: viewregister.NewModel(AppName, ""),
 			loginModel:    viewlogin.NewModel(s.AuthService, Logger, AppName, ""),
@@ -160,6 +168,10 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
+		case "ctrl+l":
+			return m, func() tea.Msg {
+				return messages.ActionMsg{Value: logoutMessageKey}
+			}
 		}
 
 	case messages.ActionMsg:
@@ -172,8 +184,19 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.currentScreen = HomeScreen
 		case viewhome.CreateNewSecretMessageKey:
 			m.currentScreen = SecretCreatorScreen
+		case viewlogin.LoggedInSuccessMsgKey:
+			bk, _ := m.keyManager.GetKey(m.cfg.ServiceMasterPasswordKey, m.cfg.AppName)
+			if bk == "" {
+				m.currentScreen = BackupScreen
+			}
+			m.currentScreen = HomeScreen
 		case backToHomeKey:
 			m.currentScreen = HomeScreen
+		case logoutMessageKey:
+			_ = m.keyManager.RemoveKey(m.cfg.ServiceMasterPasswordKey, m.cfg.AppName)
+			_ = m.keyManager.RemoveKey(m.cfg.ServiceAccessTokenKey, m.cfg.AppName)
+			_ = m.keyManager.RemoveKey(m.cfg.ServiceRefreshTokenKey, m.cfg.AppName)
+			m.currentScreen = AuthScreen
 		}
 		return m, nil
 	}
@@ -199,4 +222,31 @@ func (m MainModel) View() string {
 	default:
 		return "Unknown screen"
 	}
+}
+
+func isTokenExpired(tokenString string) bool {
+	// Parse the token without validating the signature
+	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
+	if err != nil {
+		// If we can't parse the token, consider it expired
+		return true
+	}
+
+	// Get the claims
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		// If we can't get the claims, consider it expired
+		return true
+	}
+
+	// Check the exp claim
+	exp, ok := claims["exp"].(float64)
+	if !ok {
+		// If there's no exp claim or it's not a number, consider it expired
+		return true
+	}
+
+	// Convert exp to time.Time and check if it's in the past
+	expTime := time.Unix(int64(exp), 0)
+	return time.Now().After(expTime)
 }

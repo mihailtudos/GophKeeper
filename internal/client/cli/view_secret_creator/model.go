@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mihailtudos/gophkeeper/internal/client/application/security"
 	"github.com/mihailtudos/gophkeeper/internal/client/cli/messages"
 	"github.com/mihailtudos/gophkeeper/internal/client/dto"
 	"strings"
@@ -46,6 +47,7 @@ type Model struct {
 	ErrorMsg        string
 	State           string
 	result          string
+	keyManager      *security.KeyManager
 }
 
 func NewModel(sp SecretsProvider, AppName, ErrorMsg string) Model {
@@ -136,12 +138,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					secretName := m.Inputs[2].Value()
 
 					err := m.SecretsProvider.CreateSecret(context.Background(), dto.SecretMessage{
-						Value: dto.LoginSecret{
+						Data: dto.LoginSecret{
 							Username: username,
 							Password: password,
 						},
-						SType: LoginSecretTypeKey,
-						SName: secretName,
+						Type: LoginSecretTypeKey,
+						Name: secretName,
 					})
 
 					if err != nil {

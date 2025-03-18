@@ -6,11 +6,16 @@ import (
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mihailtudos/gophkeeper/internal/client/cli/messages"
 	"github.com/mihailtudos/gophkeeper/internal/client/dto"
 	"log/slog"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+)
+
+const (
+	LoggedInSuccessMsgKey = "logged_in_success"
 )
 
 var (
@@ -52,28 +57,7 @@ func NewModel(ap AuthProvider, l *slog.Logger, AppName, ErrorMsg string) Model {
 		Logger:       l,
 	}
 
-	var t textinput.Model
-	for i := range m.Inputs {
-		t = textinput.New()
-		t.Cursor.Style = cursorStyle
-		t.CharLimit = 32
-
-		switch i {
-		case 0:
-			t.Placeholder = "Email"
-			t.Focus()
-			t.PromptStyle = focusedStyle
-			t.TextStyle = focusedStyle
-			t.CharLimit = 64
-		case 1:
-			t.Placeholder = "Password"
-			t.EchoMode = textinput.EchoPassword
-			t.EchoMode = textinput.EchoPassword
-		}
-
-		m.Inputs[i] = t
-	}
-
+	initiateInputs(&m)
 	return m
 }
 
@@ -134,7 +118,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.State = "completed"
 				m.result = "you logged in successfully"
 				m.focusIndex = -1
-				return m, nil
+				initiateInputs(&m)
+				return m, func() tea.Msg {
+					return messages.ActionMsg{Value: LoggedInSuccessMsgKey}
+				}
 			}
 
 			// Cycle indexes
@@ -211,4 +198,28 @@ func (m Model) View() string {
 
 	s.WriteString("\nctrl+c, esc - quit\n\n")
 	return s.String()
+}
+
+func initiateInputs(m *Model) {
+	var t textinput.Model
+	for i := range m.Inputs {
+		t = textinput.New()
+		t.Cursor.Style = cursorStyle
+		t.CharLimit = 32
+
+		switch i {
+		case 0:
+			t.Placeholder = "Email"
+			t.Focus()
+			t.PromptStyle = focusedStyle
+			t.TextStyle = focusedStyle
+			t.CharLimit = 64
+		case 1:
+			t.Placeholder = "Password"
+			t.EchoMode = textinput.EchoPassword
+			t.EchoMode = textinput.EchoPassword
+		}
+
+		m.Inputs[i] = t
+	}
 }

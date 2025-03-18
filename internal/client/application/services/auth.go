@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mihailtudos/gophkeeper/internal/client/application/security"
 	"github.com/mihailtudos/gophkeeper/internal/client/config"
 	"github.com/mihailtudos/gophkeeper/internal/client/dto"
-	"github.com/mihailtudos/gophkeeper/pkg/keyring"
 	"io"
 	"log/slog"
 	"net/http"
@@ -16,12 +16,14 @@ import (
 type AuthService struct {
 	logger *slog.Logger
 	config *config.Config
+	km     security.KeyManagerProvider
 }
 
-func NewAuthService(ctx context.Context, logger *slog.Logger, cfg *config.Config) *AuthService {
+func NewAuthService(ctx context.Context, logger *slog.Logger, cfg *config.Config, km security.KeyManagerProvider) *AuthService {
 	return &AuthService{
 		logger: logger,
 		config: cfg,
+		km:     km,
 	}
 }
 
@@ -61,26 +63,26 @@ func (a *AuthService) refreshToken(refreshToken string) (*dto.RefreshTokenRespon
 	return &refreshTokenResp, nil
 }
 
-func (a *AuthService) cleanLoginCreds() {
-	_ = keyring.StoreAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName, "")
-	_ = keyring.StoreAuthCreds(a.config.ServiceRefreshTokenKey, a.config.AppName, "")
+func (a *AuthService) cleanAuthKeys() {
+	_ = a.km.StoreKey(a.config.ServiceAccessTokenKey, a.config.AppName, "")
+	_ = a.km.StoreKey(a.config.ServiceRefreshTokenKey, a.config.AppName, "")
 }
 
 func (a *AuthService) setNewAccessToken() error {
-	rt, err := keyring.GetAuthCreds(a.config.ServiceRefreshTokenKey, a.config.AppName)
+	rt, err := a.km.GetKey(a.config.ServiceRefreshTokenKey, a.config.AppName)
 	a.logger.Debug("exising refresh token", slog.String("refresh_token", rt))
 	if err != nil || rt == "" {
-		a.cleanLoginCreds()
+		a.cleanAuthKeys()
 		return fmt.Errorf("failed to get refresh token: %w", err)
 	}
 
 	accessTokenResp, errAuth := a.refreshToken(rt)
 	if errAuth != nil {
-		a.cleanLoginCreds()
+		a.cleanAuthKeys()
 		return fmt.Errorf("failed to refresh token: %w", errAuth)
 	} else {
-		if err = keyring.StoreAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName, accessTokenResp.AccessToken); err != nil {
-			a.cleanLoginCreds()
+		if err = a.km.StoreKey(a.config.ServiceAccessTokenKey, a.config.AppName, accessTokenResp.AccessToken); err != nil {
+			a.cleanAuthKeys()
 			return fmt.Errorf("failed to store access token: %w", err)
 		}
 	}
@@ -89,10 +91,10 @@ func (a *AuthService) setNewAccessToken() error {
 }
 
 func (a *AuthService) StoreTokens(ctx context.Context, response *dto.LoginResponse) error {
-	if err := keyring.StoreAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName, response.AccessToken); err != nil {
+	if err := a.km.StoreKey(a.config.ServiceAccessTokenKey, a.config.AppName, response.AccessToken); err != nil {
 		return fmt.Errorf("failed to store access token: %w", err)
 	}
-	if err := keyring.StoreAuthCreds(a.config.ServiceRefreshTokenKey, a.config.AppName, response.RefreshToken); err != nil {
+	if err := a.km.StoreKey(a.config.ServiceRefreshTokenKey, a.config.AppName, response.RefreshToken); err != nil {
 		return fmt.Errorf("failed to store refresh token: %w", err)
 	}
 
@@ -100,14 +102,14 @@ func (a *AuthService) StoreTokens(ctx context.Context, response *dto.LoginRespon
 }
 
 func (a *AuthService) GetAccessToken(ctx context.Context) (string, error) {
-	token, err := keyring.GetAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName)
+	token, err := a.km.GetKey(a.config.ServiceAccessTokenKey, a.config.AppName)
 	if err != nil || token == "" {
 		if err = a.setNewAccessToken(); err != nil {
 			return "", fmt.Errorf("failed to set new access token: %w", err)
 		}
 	}
 
-	token, err = keyring.GetAuthCreds(a.config.ServiceAccessTokenKey, a.config.AppName)
+	token, err = a.km.GetKey(a.config.ServiceAccessTokenKey, a.config.AppName)
 	if err != nil || token == "" {
 		return "", fmt.Errorf("failed to get access token: %w", err)
 	}
@@ -178,5 +180,5 @@ func (a *AuthService) StoreBackupKey(ctx context.Context, key string) error {
 
 	log.Debug("storing backup key")
 
-	return keyring.StoreAuthCreds(a.config.ServiceMasterPasswordKey, a.config.AppName, key)
+	return a.km.StoreKey(a.config.ServiceMasterPasswordKey, a.config.AppName, key)
 }

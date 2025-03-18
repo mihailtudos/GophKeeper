@@ -81,7 +81,7 @@ func (m Model) View() string {
 	//}
 
 	//fmt.Fprintf(&s, "\n\n%s\t%s\n\n", buttons[0], buttons[1])
-	s.WriteString("\nctrl+n - new secret | ctrl+c, esc - quit\n\n")
+	s.WriteString("\nctrl+n - new secret | ctrl+l - logout | ctrl+c, esc - quit\n\n")
 
 	return s.String()
 }

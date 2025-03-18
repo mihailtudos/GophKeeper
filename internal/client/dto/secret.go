@@ -1,9 +1,10 @@
 package dto
 
 type SecretMessage struct {
-	Value any    `json:"value"`
-	SType string `json:"s_type"`
-	SName string `json:"s_name"`
+	Data           any    `json:"data"`
+	MasterPassword string `json:"master_password"`
+	Type           string `json:"type"`
+	Name           string `json:"name"`
 }
 
 type LoginSecret struct {

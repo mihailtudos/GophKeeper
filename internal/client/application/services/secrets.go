@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mihailtudos/gophkeeper/internal/client/application/security"
 	"github.com/mihailtudos/gophkeeper/internal/client/config"
 	"github.com/mihailtudos/gophkeeper/internal/client/dto"
 	"io"
@@ -25,26 +26,58 @@ type Secret struct {
 }
 
 type SecretService struct {
-	logger      *slog.Logger
-	cfg         *config.Config
-	AuthService AuthServiceProvider
+	logger     *slog.Logger
+	cfg        *config.Config
+	keyManager security.KeyManagerProvider
 }
 
-func NewSecretsService(ctx context.Context, as AuthServiceProvider, l *slog.Logger, cfg *config.Config) *SecretService {
+func NewSecretsService(ctx context.Context, km security.KeyManagerProvider, l *slog.Logger, cfg *config.Config) *SecretService {
 	return &SecretService{
-		AuthService: as,
-		logger:      l,
-		cfg:         cfg,
+		logger:     l,
+		cfg:        cfg,
+		keyManager: km,
 	}
 }
 
 func (s *SecretService) CreateSecret(ctx context.Context, message dto.SecretMessage) error {
-	accessToken, err := s.AuthService.GetAccessToken(ctx)
+	accessToken, err := s.keyManager.GetKey(s.cfg.ServiceAccessTokenKey, s.cfg.AppName)
 	if err != nil {
-		return fmt.Errorf("failed to get access token: %w", err)
+		return fmt.Errorf("failed to retrieve access token: %w", err)
 	}
-	s.logger.Debug("access token", slog.String("token", accessToken))
-	return errors.New("not implemented")
+	masterPassword, err := s.keyManager.GetKey(s.cfg.ServiceMasterPasswordKey, s.cfg.AppName)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve master password: %w", err)
+	}
+
+	s.logger.Debug("access token", slog.String("token", accessToken), slog.String("master password", masterPassword))
+
+	message.MasterPassword = masterPassword
+
+	data, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %w", err)
+	}
+	s.logger.Debug("message", slog.Any("message", string(data)))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.HTTPServer.HostUrl()+"/api/secrets", bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("failed to create secret: %w", errors.New(resp.Status))
+	}
+
+	return nil
 }
 
 func (s *SecretService) fetchSecretsFromServer(accessToken, masterPassword string) ([]Secret, error) {

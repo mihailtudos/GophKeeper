@@ -102,9 +102,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.focusIndex = -1
 					return m, nil
 				}
-				//err := m.grpcClient.Register(context.Background(), m.Inputs[0].Value(), m.Inputs[1].Value())
+				//err := m.grpcClient.Register(context.Background(), m.Inputs[0].Data(), m.Inputs[1].Data())
 				//if err != nil {
-				//	if err.Error() == fmt.Sprintf("user with email %s already registered", m.Inputs[0].Value()) {
+				//	if err.Error() == fmt.Sprintf("user with email %s already registered", m.Inputs[0].Data()) {
 				//		m.State = "completed"
 				//	} else {
 				//		m.State = "error"

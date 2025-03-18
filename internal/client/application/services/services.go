@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/mihailtudos/gophkeeper/internal/client/application/security"
 	"github.com/mihailtudos/gophkeeper/internal/client/config"
 	"github.com/mihailtudos/gophkeeper/internal/client/dto"
 	"log/slog"
@@ -24,14 +25,17 @@ type Services struct {
 	Config         *config.Config
 	AuthService    AuthServiceProvider
 	SecretsService SecretsServiceProvider
+	KeyManager     security.KeyManagerProvider
 }
 
-func NewServices(ctx context.Context, l *slog.Logger, cfg *config.Config) *Services {
-	as := NewAuthService(ctx, l, cfg)
+func NewServices(ctx context.Context, l *slog.Logger, cfg *config.Config, km security.KeyManagerProvider) *Services {
+	as := NewAuthService(ctx, l, cfg, km)
+
 	return &Services{
 		Logger:         l,
 		Config:         cfg,
 		AuthService:    as,
-		SecretsService: NewSecretsService(ctx, as, l, cfg),
+		KeyManager:     km,
+		SecretsService: NewSecretsService(ctx, km, l, cfg),
 	}
 }

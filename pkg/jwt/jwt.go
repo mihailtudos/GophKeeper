@@ -23,7 +23,7 @@ func NewToken(ctx context.Context, secretKey, userID string, duration time.Durat
 	return token.SignedString([]byte(secretKey))
 }
 
-func ParseToken(ctx context.Context, secretKey string, tokenString string) (*Claims, error) {
+func ParseToken(ctx context.Context, tokenString, secretKey string) (*Claims, error) {
 	claims := Claims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (any, error) {

@@ -2,7 +2,7 @@ package keyring
 
 import "github.com/zalando/go-keyring"
 
-func GetAuthCreds(key, user string) (string, error) {
+func GetSecretKey(key, user string) (string, error) {
 	token, err := keyring.Get(key, user)
 	if err != nil {
 		return "", err
@@ -11,11 +11,19 @@ func GetAuthCreds(key, user string) (string, error) {
 	return token, nil
 }
 
-func StoreAuthCreds(key, user, value string) error {
+func StoreAuthKey(key, user, value string) error {
 	err := keyring.Set(key, user, value)
 	if err != nil {
 		return err
 	}
 
+	return nil
+}
+
+func RemoveAuthKey(key, user string) error {
+	err := keyring.Delete(key, user)
+	if err != nil {
+		return err
+	}
 	return nil
 }

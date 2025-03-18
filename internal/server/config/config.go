@@ -44,7 +44,7 @@ type Database struct {
 }
 
 type Auth struct {
-	SecretKey          string        `json:"jwt_secret" yaml:"jwt_secret"`
+	SecretKey          string        `json:"jwt_secret" yaml:"jwt_secret" mapstructure:"jwt_secret"`
 	AccessTokenExpiry  time.Duration `json:"access_token_expiry" yaml:"access_token_expiry"`
 	RefreshTokenExpiry time.Duration `json:"refresh_token_expiry" yaml:"refresh_token_expiry"`
 }
