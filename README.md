@@ -39,6 +39,7 @@ Then run the `up` command to apply the migration or `down` to undo the migration
     goose -s -dir ./migrations down
 ```
 
+
 To run the client run the following command:
 
 ```shell
