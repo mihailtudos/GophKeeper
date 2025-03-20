@@ -21,31 +21,31 @@ var (
 
 func main() {
 	cfg := config.MustNewConfig()
-	Logger, err := logger.NewLogger(cfg.Logger.OutputPath, cfg.Logger.Level, cfg.Logger.Format)
+	lg, err := logger.NewLogger(cfg.Logger.OutputPath, cfg.Logger.Level, cfg.Logger.Format)
 	if err != nil {
 		panic(err)
 	}
 
-	Logger.Info("Starting GophKeeper client", "version", buildVersion, "build_date", buildDate)
-	Logger.Debug("Debug mode enabled")
+	lg.Info("Starting GophKeeper client", "version", buildVersion, "build_date", buildDate)
+	lg.Debug("Debug mode enabled")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	km := security.NewKeyManager()
 
-	s := services.NewServices(ctx, Logger, cfg, km)
+	s := services.NewServices(ctx, lg, cfg, km)
 
-	app := client.NewApp(ctx, cfg, Logger, s)
+	app := client.NewApp(ctx, cfg, lg, s)
 	//m := NewModel(cfg)
 	stop := make(chan os.Signal, 1)
 	go app.Run(ctx, stop)
 
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	sign := <-stop
-	Logger.Debug("stopping application", slog.String("signal", sign.String()))
+	lg.Debug("stopping application", slog.String("signal", sign.String()))
 
 	app.Stop()
 
-	Logger.Debug("application stopped")
+	lg.Debug("application stopped")
 }
