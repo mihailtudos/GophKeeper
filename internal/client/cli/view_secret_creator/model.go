@@ -80,6 +80,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.initializeLoginInputs()
 				}
 
+				if m.Choice == CardSecretTypeKey {
+					m.initializeCardInputs()
+				}
+
 				return m, nil
 			case "down", "left", "j":
 				m.cursor++
@@ -195,6 +199,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmd tea.Cmd
 			m.Inputs[m.focusIndex], cmd = m.Inputs[m.focusIndex].Update(msg)
 			return m, cmd
+		} else if m.State == CardSecretTypeKey {
+			// Handle login form state
+			var newCmd tea.Cmd
+			newCmd = handleCardSecretTypeKey(&m, msg)
+			if newCmd != nil {
+				return m, newCmd
+			}
+
+			// Handle input for the focused textinput
+			var cmd tea.Cmd
+			m.Inputs[m.focusIndex], cmd = m.Inputs[m.focusIndex].Update(msg)
+			return m, cmd
 		}
 	}
 
@@ -208,6 +224,8 @@ func (m Model) View() string {
 		s.WriteString(m.renderSelectChoiceView())
 	case LoginSecretTypeKey:
 		s.WriteString(m.renderLoginSecretView())
+	case CardSecretTypeKey:
+		s.WriteString(m.renderCardSecretView())
 	default:
 		s.WriteString(m.renderSelectChoiceView())
 	}

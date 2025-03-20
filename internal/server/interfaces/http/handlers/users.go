@@ -9,9 +9,8 @@ import (
 )
 
 func (h *Handler) GetSecrets(w http.ResponseWriter, r *http.Request) {
-	h.Logger.DebugContext(r.Context(), "fetching secrets")
 	userID := r.Header.Get("user_id")
-	h.Logger.DebugContext(r.Context(), "fetching secrets", slog.String("user_id", userID))
+	h.Logger.DebugContext(r.Context(), "retrieving secrets", slog.String("user_id", userID))
 
 	defer r.Body.Close()
 

@@ -2,7 +2,12 @@ package domain
 
 import (
 	"encoding/base64"
+	"errors"
 	"time"
+)
+
+var (
+	ErrInvalidSecret = errors.New("invalid secret")
 )
 
 type LoginSecret struct {
