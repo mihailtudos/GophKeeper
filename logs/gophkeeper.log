@@ -1,0 +1,80 @@
+time=2025-03-18T21:25:07.018+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T21:25:07.018+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T21:25:07.018+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T21:25:08.189+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T21:25:08.189+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T21:25:08.246+02:00 level=DEBUG msg="failed to retrieve the backup key" error="secret not found in keyring"
+time=2025-03-18T21:25:08.247+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T21:25:14.291+02:00 level=DEBUG msg="storing backup key" op=client.services.AuthService.StoreBackupKey
+time=2025-03-18T21:25:20.083+02:00 level=DEBUG msg="access token" token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDIzMjY2NTQsInVzZXJfaWQiOiI5N2YxMWUwMy1lOWIzLTQ3MjUtYWI1My1hODNkODhkZWUxMzkifQ.ge1BArAXg92NmzFx0FWwJLi8yowwYyV6paMbWCkt7XE "master password"=strongpassword123
+time=2025-03-18T21:25:20.083+02:00 level=DEBUG msg=message message="{\"data\":{\"login\":\"test\",\"password\":\"test\"},\"master_password\":\"strongpassword123\",\"type\":\"login\",\"name\":\"test\"}"
+time=2025-03-18T21:39:19.519+02:00 level=DEBUG msg="access token" token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDIzMjY2NTQsInVzZXJfaWQiOiI5N2YxMWUwMy1lOWIzLTQ3MjUtYWI1My1hODNkODhkZWUxMzkifQ.ge1BArAXg92NmzFx0FWwJLi8yowwYyV6paMbWCkt7XE "master password"=strongpassword123
+time=2025-03-18T21:39:19.519+02:00 level=DEBUG msg=message message="{\"data\":{\"login\":\"test\",\"password\":\"test\"},\"master_password\":\"strongpassword123\",\"type\":\"login\",\"name\":\"test\"}"
+time=2025-03-18T21:39:22.751+02:00 level=DEBUG msg="access token" token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDIzMjY2NTQsInVzZXJfaWQiOiI5N2YxMWUwMy1lOWIzLTQ3MjUtYWI1My1hODNkODhkZWUxMzkifQ.ge1BArAXg92NmzFx0FWwJLi8yowwYyV6paMbWCkt7XE "master password"=strongpassword123
+time=2025-03-18T21:39:22.751+02:00 level=DEBUG msg=message message="{\"data\":{\"login\":\"test\",\"password\":\"test\"},\"master_password\":\"strongpassword123\",\"type\":\"login\",\"name\":\"test\"}"
+time=2025-03-18T21:39:23.563+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T21:39:23.563+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T21:39:23.563+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T21:39:25.011+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T21:39:25.011+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T21:39:25.072+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T21:41:51.990+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T21:41:51.990+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T21:41:51.990+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T21:41:53.456+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T21:41:53.457+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T21:41:53.518+02:00 level=DEBUG msg="failed to retrieve the backup key" error="secret not found in keyring"
+time=2025-03-18T21:41:53.518+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T21:42:09.174+02:00 level=DEBUG msg="storing backup key" op=client.services.AuthService.StoreBackupKey
+time=2025-03-18T21:42:17.146+02:00 level=DEBUG msg="access token" token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDIzMjc2NzksInVzZXJfaWQiOiI2NGZlMzI2OC0xM2VkLTRjZTItYjQ1ZS1mNmI4MDAyM2I2YjUifQ.-bt2wVSP4PqoAMIG9aErbJnJBN2wUroBrC8vhqGPC94 "master password"=strongpassword123
+time=2025-03-18T21:42:17.147+02:00 level=DEBUG msg=message message="{\"data\":{\"login\":\"test\",\"password\":\"test\"},\"master_password\":\"strongpassword123\",\"type\":\"login\",\"name\":\"test\"}"
+time=2025-03-18T21:43:04.917+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T21:43:04.919+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T21:43:04.919+02:00 level=DEBUG msg="application stopped"
+time=2025-03-18T21:43:06.984+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-18T21:43:06.984+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-18T21:43:07.051+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-18T21:43:26.160+02:00 level=DEBUG msg="access token" token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDIzMjc2NzksInVzZXJfaWQiOiI2NGZlMzI2OC0xM2VkLTRjZTItYjQ1ZS1mNmI4MDAyM2I2YjUifQ.-bt2wVSP4PqoAMIG9aErbJnJBN2wUroBrC8vhqGPC94 "master password"=strongpassword123
+time=2025-03-18T21:43:26.160+02:00 level=DEBUG msg=message message="{\"data\":{\"login\":\"test\",\"password\":\"test\"},\"master_password\":\"strongpassword123\",\"type\":\"login\",\"name\":\"test\"}"
+time=2025-03-18T21:43:52.344+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-18T21:43:52.344+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-18T21:43:52.344+02:00 level=DEBUG msg="application stopped"
+time=2025-03-19T06:24:38.370+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-19T06:24:38.370+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-19T06:24:38.441+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-19T06:24:48.932+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-19T06:24:48.932+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-19T06:24:48.932+02:00 level=DEBUG msg="application stopped"
+time=2025-03-19T06:28:01.152+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-19T06:28:01.152+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-19T06:28:01.220+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-19T06:28:10.165+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-19T06:28:10.165+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-19T06:28:10.165+02:00 level=DEBUG msg="application stopped"
+time=2025-03-19T13:41:17.878+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-19T13:41:17.878+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-19T13:41:17.938+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-19T13:41:43.852+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-19T13:41:43.852+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-19T13:41:43.852+02:00 level=DEBUG msg="application stopped"
+time=2025-03-19T13:44:19.495+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-19T13:44:19.495+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-19T13:44:19.568+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-19T13:44:33.427+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-19T13:44:33.427+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-19T13:44:33.427+02:00 level=DEBUG msg="application stopped"
+time=2025-03-19T13:47:45.948+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-19T13:47:45.948+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-19T13:47:46.017+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-19T13:49:40.280+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-19T13:49:40.280+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-19T13:49:40.331+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-19T13:49:58.949+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-19T13:49:58.949+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-19T13:49:58.949+02:00 level=DEBUG msg="application stopped"
+time=2025-03-19T13:53:15.999+02:00 level=INFO msg="Starting GophKeeper client" version=N/A build_date=N/A
+time=2025-03-19T13:53:15.999+02:00 level=DEBUG msg="Debug mode enabled"
+time=2025-03-19T13:53:16.061+02:00 level=INFO msg="starting application" op=client.Run
+time=2025-03-19T14:10:03.116+02:00 level=INFO msg="user stopped execution (q, ctrl+c, esc)" op=client.Run
+time=2025-03-19T14:10:03.117+02:00 level=DEBUG msg="stopping application" signal=terminated
+time=2025-03-19T14:10:03.117+02:00 level=DEBUG msg="application stopped"
