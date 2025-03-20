@@ -28,6 +28,7 @@ type SecretResponse struct {
 	UpdatedAt time.Time   `json:"updated_at"`
 }
 
+// Store handles the POST request to store a secret.
 func (h *Handler) Store(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get("user_id")
 
@@ -41,8 +42,7 @@ func (h *Handler) Store(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.Logger.Error("failed to read request body", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusBadRequest)
+		h.errorResponse(w, r, http.StatusBadRequest, "failed to read request body")
 		return
 	}
 
@@ -50,54 +50,46 @@ func (h *Handler) Store(w http.ResponseWriter, r *http.Request) {
 
 	requestData := SecretRequest{}
 	if err = json.Unmarshal(body, &requestData); err != nil {
-		h.Logger.Error("failed to unmarshal request body", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusBadRequest)
+		h.errorResponse(w, r, http.StatusBadRequest, "failed to unmarshal request body")
 		return
 	}
 
 	if err = h.Services.SecretsService.StoreSecret(r.Context(), userID, requestData.Type,
 		requestData.Name, requestData.MasterPassword, requestData.Data); err != nil {
 		if errors.Is(err, secrets.ErrInvalidSecretType) {
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte("invalid secret type"))
+			h.errorResponse(w, r, http.StatusBadRequest, "invalid secret type")
 			return
 		}
 
 		if errors.Is(err, secrets.ErrSecretExists) {
-			w.WriteHeader(http.StatusConflict)
-			_, _ = w.Write([]byte("secret already exists"))
+			h.errorResponse(w, r, http.StatusBadRequest, "secret already exists")
 			return
 		}
 
 		if errors.Is(err, repositories.ErrRecordNotFound) {
-			w.WriteHeader(http.StatusNotFound)
-			_, _ = w.Write([]byte("user not found"))
+			h.errorResponse(w, r, http.StatusBadRequest, "user not found")
 			return
 		}
 
-		h.Logger.Error("failed to store secret", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusInternalServerError)
+		h.logError(r, err)
+		h.errorResponse(w, r, http.StatusInternalServerError, "failed to store secret")
 		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
 }
 
+// DecryptSecret handles the GET request to decrypt a secret.
 func (h *Handler) DecryptSecret(w http.ResponseWriter, r *http.Request) {
 	secretID := chi.URLParam(r, "id")
 	if secretID == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		h.errorResponse(w, r, http.StatusBadRequest, "missing secret id")
 		return
 	}
 
 	var password MasterPassword
-	if err := json.NewDecoder(r.Body).Decode(&password); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if password.MasterPassword == "" {
-		w.WriteHeader(http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&password); err != nil || password.MasterPassword == "" {
+		h.errorResponse(w, r, http.StatusBadRequest, "invalid master password")
 		return
 	}
 
@@ -106,27 +98,14 @@ func (h *Handler) DecryptSecret(w http.ResponseWriter, r *http.Request) {
 	secret, err := h.Services.SecretsService.GetSecretByID(r.Context(), secretID, password.MasterPassword)
 	if err != nil {
 		if errors.Is(err, secrets.ErrSecretNotFound) {
-			w.WriteHeader(http.StatusNotFound)
+			h.errorResponse(w, r, http.StatusNotFound, "secret not found")
 			return
 		}
 	}
 
 	encodedSecret, _ := h.jsonEncodeSecretData(secret)
 
-	data, err := json.Marshal(encodedSecret)
-	if err != nil {
-		h.Logger.Error("failed to marshal secret", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if _, err = w.Write(data); err != nil {
-		h.Logger.Error("failed to encode secret", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	h.writeJSON(w, r, http.StatusOK, encodedSecret)
 }
 
 func (h *Handler) jsonEncodeSecretData(secret *domain.Secret) (*SecretResponse, error) {
@@ -166,15 +145,12 @@ func (h *Handler) jsonEncodeSecretData(secret *domain.Secret) (*SecretResponse, 
 		return nil, errors.New("unknown secret type")
 	}
 
-	// Unified Response
-	response := &SecretResponse{
+	return &SecretResponse{
 		ID:        secret.ID,
 		Type:      secret.SType,
 		Name:      secret.SName,
 		Data:      data,
 		CreatedAt: secret.CreatedAt,
 		UpdatedAt: secret.UpdatedAt,
-	}
-
-	return response, nil
+	}, nil
 }

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/mihailtudos/gophkeeper/pkg/logger"
 	"io"
 	"log/slog"
 	"net/http"
@@ -16,22 +15,20 @@ func (h *Handler) GetSecrets(w http.ResponseWriter, r *http.Request) {
 
 	data, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.Logger.Error("failed to read request body", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusBadRequest)
+		h.writeJSON(w, r, http.StatusBadRequest, "failed to read request body")
 		return
 	}
 
 	var password MasterPassword
-	if err := json.Unmarshal(data, &password); err != nil {
-		h.Logger.Error("failed to decode password", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusBadRequest)
+	if err = json.Unmarshal(data, &password); err != nil {
+		h.writeJSON(w, r, http.StatusBadRequest, "failed to decode password")
 		return
 	}
 
 	secrets, err := h.Services.SecretsService.GetUserSecrets(r.Context(), userID, password.MasterPassword)
 	if err != nil {
-		h.Logger.Error("failed to get user secrets", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusInternalServerError)
+		h.logError(r, err)
+		h.writeJSON(w, r, http.StatusInternalServerError, "failed to get user secrets")
 		return
 	}
 
@@ -41,17 +38,5 @@ func (h *Handler) GetSecrets(w http.ResponseWriter, r *http.Request) {
 		responseSecrets = append(responseSecrets, *encodedSecret)
 	}
 
-	data, err = json.Marshal(responseSecrets)
-	if err != nil {
-		h.Logger.Error("failed to marshal secrets", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if _, err = w.Write(data); err != nil {
-		h.Logger.Error("failed to write response", logger.ErrAttr(err))
-		w.WriteHeader(http.StatusInternalServerError)
-	}
+	h.writeJSON(w, r, http.StatusOK, responseSecrets)
 }
